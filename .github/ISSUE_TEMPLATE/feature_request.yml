@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest a new tool or behavior
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Which workflow should this improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Include the Basecamp resource and expected MCP inputs and outputs.
+    validations:
+      required: true
+  - type: dropdown
+    id: mutation
+    attributes:
+      label: Does this change Basecamp data?
+      options:
+        - No, read-only
+        - Yes, mutation tool
+        - Unsure
+    validations:
+      required: true
