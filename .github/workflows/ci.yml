@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  UV_DEFAULT_INDEX: https://pypi.org/simple
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -27,17 +30,27 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
 
+      - name: Reject private package sources
+        run: |
+          if [ -f uv.lock ] && grep -Eq 'applied-caas-gateway|internal\.api\.openai\.org' uv.lock; then
+            echo "uv.lock contains a private package index"
+            exit 1
+          fi
+
+      - name: Resolve dependencies
+        run: uv lock
+
       - name: Install dependencies
-        run: uv sync --frozen --extra dev
+        run: uv sync --locked --extra dev
 
       - name: Check formatting
-        run: uv run ruff format --check .
+        run: uv run --locked ruff format --check .
 
       - name: Lint
-        run: uv run ruff check .
+        run: uv run --locked ruff check .
 
       - name: Type check
-        run: uv run mypy basecamp_mcp
+        run: uv run --locked mypy basecamp_mcp
 
       - name: Test
-        run: uv run pytest
+        run: uv run --locked pytest

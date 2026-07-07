@@ -9,9 +9,7 @@ description = "An MCP server for Basecamp projects, to-dos, messages, and Card T
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [
-  { name = "Thiago Romualdo Chaves" },
-]
+authors = [{ name = "Thiago Romualdo Chaves" }]
 keywords = ["basecamp", "mcp", "model-context-protocol", "automation", "devops"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -20,7 +18,6 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
   "httpx>=0.27,<1",
@@ -40,12 +37,16 @@ dev = [
 Homepage = "https://github.com/thiagorchaves/basecamp-mcp-server"
 Repository = "https://github.com/thiagorchaves/basecamp-mcp-server"
 Issues = "https://github.com/thiagorchaves/basecamp-mcp-server/issues"
-Changelog = "https://github.com/thiagorchaves/basecamp-mcp-server/blob/main/CHANGELOG.md"
 
 [project.scripts]
 basecamp-mcp = "basecamp_mcp.server:main"
 basecamp-oauth = "basecamp_mcp.oauth:main"
 basecamp-test = "basecamp_mcp.test_connection:main"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["basecamp_mcp"]
