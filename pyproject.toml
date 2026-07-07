@@ -47,6 +47,11 @@ basecamp-mcp = "basecamp_mcp.server:main"
 basecamp-oauth = "basecamp_mcp.oauth:main"
 basecamp-test = "basecamp_mcp.test_connection:main"
 
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["basecamp_mcp"]
 

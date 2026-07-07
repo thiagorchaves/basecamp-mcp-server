@@ -10,14 +10,30 @@ on:
 permissions:
   contents: read
 
+env:
+  UV_DEFAULT_INDEX: https://pypi.org/simple
+
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
       - name: Install uv
         uses: astral-sh/setup-uv@d31148d669074a8d0a63714ba94f3201e7020bc3 # v8.3.0
-      - name: Export locked dependencies
-        run: uv export --frozen --no-dev --no-emit-project --no-hashes --format requirements-txt --output-file requirements-audit.txt
+
+      - name: Reject private package sources
+        run: |
+          if [ -f uv.lock ] && grep -Eq 'applied-caas-gateway|internal\.api\.openai\.org' uv.lock; then
+            echo "uv.lock contains a private package index"
+            exit 1
+          fi
+
+      - name: Resolve dependencies
+        run: uv lock
+
+      - name: Export dependencies
+        run: uv export --locked --no-dev --no-emit-project --no-hashes --format requirements-txt --output-file requirements-audit.txt
+
       - name: Audit dependencies
         run: uvx pip-audit -r requirements-audit.txt
