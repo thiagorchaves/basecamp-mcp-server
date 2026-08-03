@@ -2,31 +2,45 @@
 
 [Português (Brasil)](README.pt-BR.md)
 
-An open-source Model Context Protocol server for Basecamp projects, messages,
-to-dos, recordings, and Card Tables. It was designed for operational workflows
-where an AI assistant needs to find work items, preview updates, and write back
-only after explicit approval.
+An open-source Model Context Protocol server for Basecamp projects, messages, to-dos, recordings, and Card Tables. It is designed for operational workflows where an AI assistant needs to retrieve context, prepare changes, and keep sensitive card mutations behind explicit, preview-bound approval.
 
 > [!IMPORTANT]
-> This is an independent community project. It is not affiliated with,
-> sponsored by, or endorsed by 37signals or Basecamp.
+> This is an independent community project. It is not affiliated with, sponsored by, or endorsed by 37signals or Basecamp.
+
+![Basecamp MCP Server architecture](docs/basecamp-mcp-architecture.svg)
 
 ## Highlights
 
 - Discover projects and enabled project tools.
 - Search to-dos and Card Table cards by title or assignee.
 - Follow Basecamp pagination automatically.
-- Preview Card Table comments before writing.
-- Add comments, investigation reports, and due dates to existing cards.
-- Create messages and to-dos when write tools are explicitly enabled.
+- Keep mutation tools disabled by default.
+- Preview sensitive card updates before writing.
+- Bind card comments, due-date changes, and investigation reports to short-lived, single-use confirmation tokens.
 - Refuse ambiguous title-based writes when multiple items match.
-- Keep every mutation tool disabled by default.
+- Support OAuth authorization and token refresh.
+- Run linting, typing, tests, and dependency auditing in CI.
+
+## How preview-bound confirmation works
+
+Sensitive Card Table workflows use a two-step protocol:
+
+1. Call a preview tool.
+2. Show the preview to the user.
+3. The preview returns a short-lived `confirmation_id` bound to the exact card and payload.
+4. After explicit approval, call the matching write tool with that `confirmation_id`.
+5. The server verifies that the requested write exactly matches the approved preview and consumes the token.
+
+A confirmation token cannot be reused and cannot authorize a changed payload.
+
+> [!NOTE]
+> The server enforces preview-before-write and exact payload binding. The MCP host is responsible for forwarding the `confirmation_id` only after the user has actually approved the preview.
 
 ## Requirements
 
 - Python 3.11 or newer.
-- A Basecamp OAuth application.
-- An MCP-compatible client such as Kiro, Claude Desktop, or another stdio host.
+- A Basecamp OAuth application or valid access token.
+- An MCP-compatible stdio client such as Kiro, Claude Desktop, or another MCP host.
 
 ## Install from GitHub
 
@@ -44,8 +58,7 @@ uv sync --extra dev
 
 ## Configure Basecamp OAuth
 
-Register an application in the 37signals integrations console and use this
-redirect URI:
+Register an application in the 37signals integrations console and use this redirect URI:
 
 ```text
 http://localhost:8000/callback
@@ -73,9 +86,6 @@ Authorize the application:
 basecamp-oauth
 ```
 
-The command stores the access token, refresh token, expiration timestamp, and,
-when only one Basecamp account is available, the account ID in `.env`.
-
 Refresh an expired access token with:
 
 ```bash
@@ -96,8 +106,21 @@ Mutation tools are not registered unless this variable is enabled:
 BASECAMP_ENABLE_WRITE_TOOLS=true
 ```
 
-Keep it `false` for read-only usage. Even when writes are enabled, do not add
-mutation tools to an MCP client's automatic approval list.
+Keep it `false` for read-only usage. Even when writes are enabled, do not add mutation tools to an MCP client's automatic approval list.
+
+Preview-bound confirmation tokens default to five minutes:
+
+```dotenv
+BASECAMP_CONFIRMATION_TTL_SECONDS=300
+```
+
+The following Card Table writes require a valid preview token:
+
+- `add_card_update` from `preview_card_update`
+- `update_card_due_date` from `preview_card_due_date`
+- `add_investigation_report_to_card` from `preview_investigation_report_to_card`
+
+Other optional mutation tools still rely on `BASECAMP_ENABLE_WRITE_TOOLS=true` and the MCP host's approval controls.
 
 ## Kiro configuration
 
@@ -115,7 +138,8 @@ mutation tools to an MCP client's automatic approval list.
         "BASECAMP_ACCOUNT_ID": "${BASECAMP_ACCOUNT_ID}",
         "BASECAMP_ACCESS_TOKEN": "${BASECAMP_ACCESS_TOKEN}",
         "BASECAMP_USER_AGENT": "${BASECAMP_USER_AGENT}",
-        "BASECAMP_ENABLE_WRITE_TOOLS": "false"
+        "BASECAMP_ENABLE_WRITE_TOOLS": "false",
+        "BASECAMP_CONFIRMATION_TTL_SECONDS": "300"
       },
       "autoApprove": []
     }
@@ -123,12 +147,9 @@ mutation tools to an MCP client's automatic approval list.
 }
 ```
 
-Change `BASECAMP_ENABLE_WRITE_TOOLS` to `true` only for sessions that need to
-modify Basecamp.
-
 ## Tools
 
-### Read-only
+### Read-only and preview
 
 - `healthcheck`
 - `list_projects`, `find_projects`, `find_project_by_name`, `get_project`
@@ -140,24 +161,27 @@ modify Basecamp.
 - `list_project_card_tables`, `get_card_table`, `list_cards`
 - `find_cards_by_title`, `find_cards_by_assignee`, `get_my_cards`
 - `preview_card_update`
+- `preview_card_due_date`
+- `preview_investigation_report_to_card`
 
 ### Write-enabled
 
 - `create_message`, `create_project_message`
 - `create_project_message_from_markdown`
 - `create_todo`, `create_todo_from_markdown`
-- `add_comment`, `comment_recording_from_markdown`, `comment_card`
-- `update_card_by_title`, `update_card_table_card_by_title`
-- `add_card_update`, `add_investigation_report_to_card`
-- `update_card_due_date`
+- `update_card_by_title`
+- `add_comment`, `comment_recording_from_markdown`
+- `add_card_update` (preview token required)
+- `update_card_due_date` (preview token required)
+- `add_investigation_report_to_card` (preview token required)
 
-## Recommended agent workflow
+## Recommended card workflow
 
 1. Find the project and target card.
-2. Display its title, column, URL, and current due date.
-3. Call `preview_card_update`.
-4. Ask the user for explicit confirmation.
-5. Perform the write.
+2. Display its title, column, URL, and current state.
+3. Call the appropriate preview tool.
+4. Show the preview and ask the user for explicit confirmation.
+5. Pass the returned `confirmation_id` to the matching write tool.
 6. Read the resource again and report the final state.
 
 ## Development
@@ -170,11 +194,11 @@ uv run mypy basecamp_mcp
 uv run pytest
 ```
 
+CI tests Python 3.11, 3.12, and 3.13 and runs a scheduled dependency audit.
+
 ## Security
 
-Never commit `.env`, OAuth tokens, account IDs from private environments, or
-real API responses containing people and project data. See [SECURITY.md](SECURITY.md)
-for vulnerability reporting.
+Never commit `.env`, OAuth tokens, account IDs from private environments, or real API responses containing people and project data. See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## License
 

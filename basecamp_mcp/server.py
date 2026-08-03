@@ -6,22 +6,24 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from .config import BasecampConfig, env_bool
+from .config import BasecampConfig, env_bool, env_int
 from .tools.card_tables import (
-    add_card_update,
-    add_investigation_report_to_card,
-    comment_card,
     find_cards_by_assignee,
     find_cards_by_title,
     get_card_table,
     get_my_cards,
     list_cards,
     list_project_card_tables,
-    preview_card_update,
-    update_card_due_date,
-    update_card_table_card_by_title,
 )
 from .tools.comments import add_comment, comment_recording_from_markdown, get_recording
+from .tools.confirmed_cards import (
+    add_card_update,
+    add_investigation_report_to_card,
+    preview_card_due_date,
+    preview_card_update,
+    preview_investigation_report_to_card,
+    update_card_due_date,
+)
 from .tools.messages import (
     create_message,
     create_project_message,
@@ -62,6 +64,8 @@ def healthcheck() -> dict[str, Any]:
         "access_token_present": bool(os.getenv("BASECAMP_ACCESS_TOKEN")),
         "user_agent_present": bool(os.getenv("BASECAMP_USER_AGENT")),
         "write_tools_enabled": writes_enabled(),
+        "preview_bound_card_confirmations": True,
+        "confirmation_ttl_seconds": env_int("BASECAMP_CONFIRMATION_TTL_SECONDS", 300, minimum=30),
         "api_base": os.getenv("BASECAMP_API_BASE", "https://3.basecampapi.com"),
     }
 
@@ -92,6 +96,8 @@ _register(
         find_cards_by_assignee,
         get_my_cards,
         preview_card_update,
+        preview_card_due_date,
+        preview_investigation_report_to_card,
     ]
 )
 
@@ -106,8 +112,6 @@ if writes_enabled():
             update_card_by_title,
             add_comment,
             comment_recording_from_markdown,
-            comment_card,
-            update_card_table_card_by_title,
             add_card_update,
             update_card_due_date,
             add_investigation_report_to_card,
