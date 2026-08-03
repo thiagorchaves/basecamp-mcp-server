@@ -9,9 +9,7 @@ def test_confirmation_is_single_use(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = {"card_id": 10, "due_on": "2026-08-10"}
     issued = confirmation.issue_confirmation("update_card_due_date", payload)
 
-    confirmation.consume_confirmation(
-        "update_card_due_date", payload, issued["confirmation_id"]
-    )
+    confirmation.consume_confirmation("update_card_due_date", payload, issued["confirmation_id"])
 
     with pytest.raises(BasecampError, match="invalid, expired, or has already been used"):
         confirmation.consume_confirmation(
