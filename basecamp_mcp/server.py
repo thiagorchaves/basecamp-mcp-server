@@ -65,9 +65,7 @@ def healthcheck() -> dict[str, Any]:
         "user_agent_present": bool(os.getenv("BASECAMP_USER_AGENT")),
         "write_tools_enabled": writes_enabled(),
         "preview_bound_card_confirmations": True,
-        "confirmation_ttl_seconds": env_int(
-            "BASECAMP_CONFIRMATION_TTL_SECONDS", 300, minimum=30
-        ),
+        "confirmation_ttl_seconds": env_int("BASECAMP_CONFIRMATION_TTL_SECONDS", 300, minimum=30),
         "api_base": os.getenv("BASECAMP_API_BASE", "https://3.basecampapi.com"),
     }
 
