@@ -74,18 +74,12 @@ def test_due_date_requires_preview_token(monkeypatch: pytest.MonkeyPatch) -> Non
         lambda card_id, due_on: {"ok": True, "card_id": card_id, "due_on": due_on},
     )
 
-    preview = confirmed_cards.preview_card_due_date(
-        "Ops", "Investigate latency", "2026-08-20"
-    )
-    result = confirmed_cards.update_card_due_date(
-        10, "2026-08-20", preview["confirmation_id"]
-    )
+    preview = confirmed_cards.preview_card_due_date("Ops", "Investigate latency", "2026-08-20")
+    result = confirmed_cards.update_card_due_date(10, "2026-08-20", preview["confirmation_id"])
 
     assert result["confirmation_consumed"] is True
 
 
 def test_invalid_due_date_is_rejected_before_token_issue(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(BasecampError, match="valid calendar date"):
-        confirmed_cards.preview_card_due_date(
-            "Ops", "Investigate latency", "2026-02-31"
-        )
+        confirmed_cards.preview_card_due_date("Ops", "Investigate latency", "2026-02-31")
