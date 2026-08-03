@@ -114,7 +114,9 @@ def update_card_due_date(card_id: int, due_on: str, confirmation_id: str) -> dic
 
 
 def _formatted_investigation_report(report_markdown: str) -> str:
-    return f"📋 **Relatório de Investigação**\n\n{report_markdown}\n\n---\n_Gerado via MCP Basecamp_"
+    return (
+        f"📋 **Relatório de Investigação**\n\n{report_markdown}\n\n---\n_Gerado via MCP Basecamp_"
+    )
 
 
 def preview_investigation_report_to_card(
